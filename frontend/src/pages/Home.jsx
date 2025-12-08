@@ -6,31 +6,47 @@ function Home() {
     const [articles, setArticles] = useState([]);
 
     useEffect(() => {
-        // Backend'den yazıları çek
         api.get("/articles")
             .then((response) => {
                 setArticles(response.data);
             })
-            .catch((error) => console.error("Veri çekme hatası:", error));
+            .catch((error) => console.error("Error fetching data:", error));
     }, []);
 
     return (
-        <div>
-            <h1>📢 Blog Yazıları</h1>
-            {articles.length === 0 ? (
-                <p>Henüz hiç yazı yok...</p>
-            ) : (
-                articles.map((article) => (
-                    <div key={article.id} className="card">
-                        <h2>{article.title}</h2>
-                        <p>{article.content.substring(0, 100)}...</p>{" "}
-                        {/* İlk 100 karakter */}
-                        <Link to={`/article/${article.id}`}>
-                            Devamını Oku →
-                        </Link>
-                    </div>
-                ))
-            )}
+        <div className="container">
+            <header className="hero">
+                <h1>🚀 Tech Blog Daily</h1>
+                <p>
+                    Auto-generated insights on Docker, AWS & Full-Stack
+                    Development.
+                </p>
+            </header>
+
+            <div className="grid">
+                {articles.length === 0 ? (
+                    <p className="loading">Loading articles...</p>
+                ) : (
+                    articles.map((article) => (
+                        <div key={article.id} className="card">
+                            <h2>{article.title}</h2>
+                            <p>{article.content.substring(0, 120)}...</p>
+                            <div className="card-footer">
+                                <span className="date">
+                                    {new Date(
+                                        article.createdAt
+                                    ).toLocaleDateString("en-US")}
+                                </span>
+                                <Link
+                                    to={`/article/${article.id}`}
+                                    className="read-more">
+                                    Read More →
+                                </Link>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }

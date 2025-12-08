@@ -1,34 +1,102 @@
+/* Modern Reset & Base Styles */
+:root {
+    --primary: #2563eb;
+    --bg: #f8fafc;
+    --text: #334155;
+    --card-bg: #ffffff;
+}
+
 body {
-    font-family: sans-serif;
-    max-width: 800px;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 900px;
     margin: 0 auto;
-    padding: 20px;
-    background-color: #f4f4f9;
+    padding: 40px 20px;
 }
-h1 {
-    color: #333;
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    margin-bottom: 50px;
 }
-.card {
-    background: white;
-    padding: 15px;
+.hero h1 {
+    font-size: 2.5rem;
     margin-bottom: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: #1e293b;
 }
+.hero p {
+    color: #64748b;
+    font-size: 1.1rem;
+}
+
+/* Cards */
+.card,
+.detail-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+    border: 1px solid #e2e8f0;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+    margin-top: 0;
+    color: #1e293b;
+}
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Typography & Links */
 a {
     text-decoration: none;
-    color: #007bff;
-    font-weight: bold;
+    color: inherit;
 }
-a:hover {
-    text-decoration: underline;
+.read-more {
+    color: var(--primary);
+    font-weight: 600;
+}
+.date {
+    color: #94a3b8;
+    font-size: 0.9rem;
 }
 .content {
-    line-height: 1.6;
-    color: #555;
     white-space: pre-wrap;
+    font-size: 1.05rem;
+    color: #475569;
 }
+
 .back-btn {
     display: inline-block;
     margin-bottom: 20px;
+    color: #64748b;
+    font-weight: 500;
+}
+.back-btn:hover {
+    color: var(--primary);
+}
+.loading {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 1.2rem;
+    color: #94a3b8;
 }
