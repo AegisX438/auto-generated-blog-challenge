@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+    # Backend Servisi
+    backend:
+        build: ../backend # Backend klasöründeki Dockerfile'ı kullan
+        ports:
+            - "3000:3000" # Dışarıdaki 3000 portunu içerideki 3000'e bağla
+        environment:
+            - HF_API_KEY=${HF_API_KEY} # Bilgisayarındaki API anahtarını içeri aktar
+        volumes:
+            - ../backend/blog.sqlite:/app/blog.sqlite # Veritabanını kaybetmemek için bağla
+
+    # Frontend Servisi
+    frontend:
+        build: ../frontend # Frontend klasöründeki Dockerfile'ı kullan
+        ports:
+            - "8080:5173" # Dışarıdan 8080 ile girince, içeride 5173'e git
+        depends_on:
+            - backend # Backend çalışmadan Frontend başlama
