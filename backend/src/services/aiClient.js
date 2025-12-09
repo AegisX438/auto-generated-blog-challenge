@@ -4,13 +4,11 @@ require("dotenv").config();
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// YEDEK PLANI: Sırayla denenecek ücretsiz modeller listesi
-// Biri çalışmazsa otomatik diğerine geçecek.
 const MODELS_TO_TRY = [
-    "meta-llama/llama-3-8b-instruct:free", // Plan A: Meta Llama 3 (Genelde en iyisi)
-    "microsoft/phi-3-mini-128k-instruct:free", // Plan B: Microsoft Phi-3 (Çok hızlı)
-    "mistralai/mistral-7b-instruct:free", // Plan C: Mistral (Güvenilir)
-    "google/gemma-2-9b-it:free", // Plan D: Google Gemma (Bazen hata veriyor)
+    "mistralai/mistral-7b-instruct:free",
+    "meta-llama/llama-3-8b-instruct:free",
+    "microsoft/phi-3-mini-128k-instruct:free",
+    "google/gemma-2-9b-it:free",
 ];
 
 const topics = [
@@ -26,7 +24,7 @@ const topics = [
 
 const backupContent = {
     content:
-        "System Note: All free AI models are currently overloaded. Database and API connectivity are fully functional. This is a fallback message.",
+        "System Note: Content generation is temporarily unavailable. Database and API connectivity are functional.",
 };
 
 async function generateArticleContent() {
@@ -36,10 +34,9 @@ async function generateArticleContent() {
   Rules:
   1. The first line MUST be the Title.
   2. The following lines MUST be the Content.
-  3. Keep it concise (approx 150 words).
-  4. Use standard English.`;
+  3. Do not use [OUT], [OUTPUT] or similar prefixes.
+  4. Keep it concise (approx 150 words).`;
 
-    // --- DÖNGÜ BAŞLIYOR ---
     for (const modelName of MODELS_TO_TRY) {
         try {
             console.log(`🔄 Trying model: ${modelName}...`);
@@ -57,47 +54,41 @@ async function generateArticleContent() {
                         "X-Title": "Auto Blog Challenge",
                         "Content-Type": "application/json",
                     },
-                    timeout: 10000, // 10 saniye içinde cevap gelmezse diğer modele geç
+                    timeout: 15000,
                 }
             );
 
-            // Eğer buraya geldiyse hata yok demektir, cevabı işle
-            const generatedText =
-                response.data.choices[0].message.content.trim();
+            let generatedText = response.data.choices[0].message.content.trim();
 
+            // --- İŞTE SİHİRLİ TEMİZLİK KISMI ---
+
+            // 1. [OUT], [OUTPUT], [Start] gibi etiketleri sil
+            generatedText = generatedText.replace(/^\[.*?\]/g, "").trim();
+
+            // 2. Satırlara böl
             const lines = generatedText.split("\n");
+
+            // 3. Boş satırları temizle
             const cleanLines = lines.filter((line) => line.trim() !== "");
-            // HTML taglerini (<s>, </s> vb.) ve markdown işaretlerini temizle
-            const title = cleanLines[0]
-                .replace(/<[^>]*>/g, "")
-                .replace(/^#+\s*/, "")
-                .replace(/\*\*/g, "")
-                .trim();
+
+            // 4. Başlığı al ve temizle (# işaretlerini, ** işaretlerini sil)
+            // cleanLines[0] başlık olması lazım, eğer yoksa randomTopic'i kullan
+            let title = cleanLines.length > 0 ? cleanLines[0] : randomTopic;
+            title = title.replace(/[#*]/g, "").trim();
+
+            // 5. İçeriği al (İlk satır hariç gerisi)
             const content = cleanLines.slice(1).join("\n").trim();
 
             console.log(`✅ Success with model: ${modelName}`);
 
-            return {
-                title: title || randomTopic,
-                content: content || generatedText,
-            };
+            return { title, content: content || generatedText };
         } catch (error) {
-            // Hata detayını yazdır ama programı durdurma, döngü devam etsin
-            console.warn(
-                `❌ Model failed: ${modelName}. Error: ${
-                    error.response?.data?.error?.message || error.message
-                }`
-            );
-            // Bir sonraki modele geç...
+            console.warn(`❌ Model failed: ${modelName}. Moving to next...`);
         }
     }
 
-    // --- DÖNGÜ BİTTİ VE HİÇBİRİ ÇALIŞMADIYSA ---
-    console.error("⚠️ All models failed. Returning backup content.");
-    return {
-        title: `${randomTopic}`,
-        content: backupContent.content,
-    };
+    console.error("⚠️ All models failed.");
+    return { title: randomTopic, content: backupContent.content };
 }
 
 module.exports = { generateArticleContent };
