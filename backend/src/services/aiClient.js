@@ -24,7 +24,7 @@ const topics = [
 
 const backupContent = {
     content:
-        "System Note: Content generation is temporarily unavailable. Database and API connectivity are functional.",
+        "System Note: The AI model generated a title but failed to provide the body content. This placeholder ensures the layout remains intact. The database and backend services are fully operational.",
 };
 
 async function generateArticleContent() {
@@ -33,9 +33,9 @@ async function generateArticleContent() {
     const prompt = `Write a technical blog post about "${randomTopic}".
   Rules:
   1. The first line MUST be the Title.
-  2. The following lines MUST be the Content.
+  2. The following lines MUST be the Content (at least 3 paragraphs).
   3. Do not use [OUT], [OUTPUT] or similar prefixes.
-  4. Keep it concise (approx 150 words).`;
+  4. Use standard English.`;
 
     for (const modelName of MODELS_TO_TRY) {
         try {
@@ -54,34 +54,43 @@ async function generateArticleContent() {
                         "X-Title": "Auto Blog Challenge",
                         "Content-Type": "application/json",
                     },
-                    timeout: 15000,
+                    timeout: 20000, // Süreyi biraz artırdık (20sn)
                 }
             );
 
             let generatedText = response.data.choices[0].message.content.trim();
 
-            // --- İŞTE SİHİRLİ TEMİZLİK KISMI ---
-
-            // 1. [OUT], [OUTPUT], [Start] gibi etiketleri sil
+            // Temizlik
             generatedText = generatedText.replace(/^\[.*?\]/g, "").trim();
-
-            // 2. Satırlara böl
             const lines = generatedText.split("\n");
-
-            // 3. Boş satırları temizle
             const cleanLines = lines.filter((line) => line.trim() !== "");
 
-            // 4. Başlığı al ve temizle (# işaretlerini, ** işaretlerini sil)
-            // cleanLines[0] başlık olması lazım, eğer yoksa randomTopic'i kullan
+            // Başlık Belirleme
             let title = cleanLines.length > 0 ? cleanLines[0] : randomTopic;
             title = title.replace(/[#*]/g, "").trim();
 
-            // 5. İçeriği al (İlk satır hariç gerisi)
-            const content = cleanLines.slice(1).join("\n").trim();
+            // İçerik Belirleme
+            let content = cleanLines.slice(1).join("\n").trim();
+
+            // --- YENİ EKLENEN KORUMA ---
+            // Eğer içerik boş geldiyse veya çok kısaysa (AI sadece başlık ürettiyse)
+            if (!content || content.length < 50) {
+                console.warn(
+                    `⚠️ Model (${modelName}) returned empty body. Using backup content.`
+                );
+                // Eğer AI koca bir paragrafı tek satırda verdiyse (başlık sanıldıysa)
+                if (title.length > 100) {
+                    content = title; // O zaman başlık sandığımız şey aslında içeriktir.
+                    title = randomTopic; // Başlığı biz uyduralım.
+                } else {
+                    // Gerçekten boşsa yedek metni koy
+                    content = backupContent.content;
+                }
+            }
+            // ---------------------------
 
             console.log(`✅ Success with model: ${modelName}`);
-
-            return { title, content: content || generatedText };
+            return { title, content };
         } catch (error) {
             console.warn(`❌ Model failed: ${modelName}. Moving to next...`);
         }
