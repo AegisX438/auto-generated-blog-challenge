@@ -4,11 +4,12 @@ require("dotenv").config();
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+// DAHA GÜÇLÜ VE YENİ MODELLER (Sıralama Önemli)
 const MODELS_TO_TRY = [
-    "mistralai/mistral-7b-instruct:free",
-    "meta-llama/llama-3-8b-instruct:free",
-    "microsoft/phi-3-mini-128k-instruct:free",
-    "google/gemma-2-9b-it:free",
+    "google/gemini-2.0-flash-exp:free", // Google'ın en yeni, çok hızlı ve zeki modeli
+    "meta-llama/llama-3.2-11b-vision-instruct:free", // Llama'nın yeni versiyonu
+    "microsoft/phi-3-medium-128k-instruct:free", // Microsoft'un güçlü modeli
+    "huggingfaceh4/zephyr-7b-beta:free", // Çok konuşkan bir model
 ];
 
 const topics = [
@@ -24,18 +25,19 @@ const topics = [
 
 const backupContent = {
     content:
-        "System Note: The AI model generated a title but failed to provide the body content. This placeholder ensures the layout remains intact. The database and backend services are fully operational.",
+        "System Note: Content generation is temporarily unavailable. The database and backend services are fully operational.",
 };
 
 async function generateArticleContent() {
     const randomTopic = topics[Math.floor(Math.random() * topics.length)];
 
+    // Prompt'u daha net ve zorlayıcı yaptık
     const prompt = `Write a technical blog post about "${randomTopic}".
-  Rules:
-  1. The first line MUST be the Title.
-  2. The following lines MUST be the Content (at least 3 paragraphs).
-  3. Do not use [OUT], [OUTPUT] or similar prefixes.
-  4. Use standard English.`;
+  STRICT FORMAT RULES:
+  1. First line must be the Title.
+  2. Write at least 2 paragraphs of content after the title.
+  3. Do not use prefixes like [Title] or [Content].
+  4. Write in standard English.`;
 
     for (const modelName of MODELS_TO_TRY) {
         try {
@@ -54,40 +56,55 @@ async function generateArticleContent() {
                         "X-Title": "Auto Blog Challenge",
                         "Content-Type": "application/json",
                     },
-                    timeout: 20000, // Süreyi biraz artırdık (20sn)
+                    timeout: 25000, // Süreyi artırdık
                 }
             );
 
             let generatedText = response.data.choices[0].message.content.trim();
 
-            // Temizlik
-            generatedText = generatedText.replace(/^\[.*?\]/g, "").trim();
+            // Temizlik (Regex)
+            generatedText = generatedText
+                .replace(/^\[.*?\]/g, "")
+                .replace(/<[^>]*>/g, "")
+                .trim();
+
             const lines = generatedText.split("\n");
+            // Boş satırları temizle
             const cleanLines = lines.filter((line) => line.trim() !== "");
 
-            // Başlık Belirleme
-            let title = cleanLines.length > 0 ? cleanLines[0] : randomTopic;
-            title = title.replace(/[#*]/g, "").trim();
+            // --- AKILLI AYRIŞTIRICI ---
 
-            // İçerik Belirleme
-            let content = cleanLines.slice(1).join("\n").trim();
+            let title = randomTopic;
+            let content = "";
 
-            // --- YENİ EKLENEN KORUMA ---
-            // Eğer içerik boş geldiyse veya çok kısaysa (AI sadece başlık ürettiyse)
+            if (cleanLines.length === 0) {
+                throw new Error("Empty response from AI");
+            }
+
+            if (cleanLines.length === 1) {
+                // Eğer AI sadece tek bir paragraf verdiyse
+                // Başlığı konu ismi yap, gelen metni içerik yap
+                title = randomTopic;
+                content = cleanLines[0];
+            } else {
+                // Eğer birden fazla satır varsa (Normal durum)
+                title = cleanLines[0].replace(/[#*]/g, "").trim();
+                content = cleanLines.slice(1).join("\n").trim();
+            }
+
+            // Eğer içerik hala boşsa ama başlık çok uzunsa, başlığı içerik yap
+            if (!content && title.length > 100) {
+                content = title;
+                title = randomTopic;
+            }
+
+            // Son güvenlik kontrolü
             if (!content || content.length < 50) {
                 console.warn(
-                    `⚠️ Model (${modelName}) returned empty body. Using backup content.`
+                    `⚠️ Model (${modelName}) returned insufficient content. Trying next...`
                 );
-                // Eğer AI koca bir paragrafı tek satırda verdiyse (başlık sanıldıysa)
-                if (title.length > 100) {
-                    content = title; // O zaman başlık sandığımız şey aslında içeriktir.
-                    title = randomTopic; // Başlığı biz uyduralım.
-                } else {
-                    // Gerçekten boşsa yedek metni koy
-                    content = backupContent.content;
-                }
+                continue; // Diğer modele geç
             }
-            // ---------------------------
 
             console.log(`✅ Success with model: ${modelName}`);
             return { title, content };
