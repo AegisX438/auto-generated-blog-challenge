@@ -7,47 +7,48 @@ const app = express();
 const PORT = 3000;
 
 // Middleware
-app.use(cors()); // Frontend'in (React) Backend'e erişmesine izin verir
-app.use(express.json()); // JSON verilerini okuyabilmemizi sağlar
+app.use(cors()); //For fronend reach to backend
+app.use(express.json());
 
-// Başlangıçta veritabanını başlat
+// First start db
 initDb();
 
-// --- ROTALAR (ENDPOINTS) ---
+// --- ENDPOINTS ---
 
-// 1. Tüm yazıları getir
+// 1. Bring all blogs
 app.get("/articles", async (req, res) => {
     try {
-        // En yeniden eskiye doğru sırala
+        // List to newer to older
         const articles = await Article.findAll({
             order: [["createdAt", "DESC"]],
         });
         res.json(articles);
     } catch (error) {
-        res.status(500).json({ error: "Yazılar çekilemedi." });
+        res.status(500).json({ error: "Couldn't bring blogs." });
     }
 });
 
-// 2. Tek bir yazıyı getir
+// 2. Bring only one blog
 app.get("/articles/:id", async (req, res) => {
     try {
         const article = await Article.findByPk(req.params.id);
-        if (!article)
-            return res.status(404).json({ error: "Yazı bulunamadı." });
+        if (!article) return res.status(404).json({ error: "Blog not found." });
         res.json(article);
     } catch (error) {
-        res.status(500).json({ error: "Yazı detayı çekilemedi." });
+        res.status(500).json({
+            error: "There is an error while getting blog detail.",
+        });
     }
 });
 
-// 3. Test için Manuel Yazı Ekleme (Bunu normalde AI yapacak ama test için lazım)
+// 3. Just for test
 app.post("/articles", async (req, res) => {
     try {
         const { title, content } = req.body;
         const newArticle = await Article.create({ title, content });
         res.status(201).json(newArticle);
     } catch (error) {
-        res.status(500).json({ error: "Yazı oluşturulamadı." });
+        res.status(500).json({ error: "Could not create a blog" });
     }
 });
 
@@ -63,7 +64,7 @@ app.post("/articles/generate", async (req, res) => {
         res.status(201).json(newArticle);
     } catch (error) {
         res.status(500).json({
-            error: "AI yazı üretemedi.",
+            error: "AI Couldn't create a blog post.",
             details: error.message,
         });
     }
@@ -71,5 +72,5 @@ app.post("/articles/generate", async (req, res) => {
 
 // Sunucuyu başlat
 app.listen(PORT, () => {
-    console.log(`Backend sunucusu çalışıyor: http://localhost:${PORT}`);
+    console.log(`Backend server running on: http://localhost:${PORT}`);
 });
